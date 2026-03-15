@@ -126,9 +126,10 @@ export function useMultiplayerGame(roomId: string) {
               const deadlineTime = new Date(Date.now() + TURN_SECONDS * 1000).toISOString();
               
               const resetRoom = async () => {
-                await supabase.from("game_moves").delete().eq("room_id", roomId);
+                const { error: moveError } = await supabase.from("game_moves").delete().eq("room_id", roomId);
+                if (moveError) console.error("Rematch: Error deleting moves:", moveError);
                 
-                await supabase.from("game_rooms").update({
+                const { error: roomError } = await supabase.from("game_rooms").update({
                   status: "playing",
                   turn_deadline: deadlineTime,
                   rematch_x_ready: false,
@@ -138,6 +139,7 @@ export function useMultiplayerGame(roomId: string) {
                   player_x_name: updated.player_o_name,
                   player_o_name: updated.player_x_name,
                 }).eq("id", roomId);
+                if (roomError) console.error("Rematch: Error updating room:", roomError);
               };
               resetRoom();
             }

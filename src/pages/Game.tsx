@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Board from "@/components/game/Board";
@@ -28,6 +28,8 @@ const Game = () => {
     handleDeclineRematch,
     handleJoin,
     handleTimeout,
+    profileX,
+    profileO,
   } = useMultiplayerGame(roomId!);
 
   const [showResult, setShowResult] = useState(false);
@@ -35,28 +37,43 @@ const Game = () => {
   const [copied, setCopied] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
+  const isFirstLoad = useRef(true);
 
   // Detect game over and rematch resets
   useEffect(() => {
-    if (gameState && gameState.isGameOver && gameState.moves.length > prevMoveCount) {
-      setTimeout(() => {
+    if (gameState && gameState.isGameOver) {
+      if (isFirstLoad.current) {
+        // Just show dialog on full refresh without Confetti / delays
         setShowResult(true);
-        if (gameState.winner === myPlayer || gameState.winner) {
-          confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: gameState.winner === 'X' ? ['#2563eb', '#60a5fa'] : ['#e11d48', '#fb7185']
-          });
-        }
-      }, 600);
+        isFirstLoad.current = false;
+        setPrevMoveCount(gameState.moves.length);
+        return;
+      }
+
+      if (gameState.moves.length > prevMoveCount) {
+        setTimeout(() => {
+          setShowResult(true);
+          if (gameState.winner === myPlayer || gameState.winner) {
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 },
+              colors: gameState.winner === 'X' ? ['#2563eb', '#60a5fa'] : ['#e11d48', '#fb7185']
+            });
+          }
+        }, 600);
+      }
     }
+
     // If the game is restarted from a rematch, hide the dialog automatically
     if (gameState && !gameState.isGameOver && showResult) {
       setShowResult(false);
     }
     
-    if (gameState) setPrevMoveCount(gameState.moves.length);
+    if (gameState) {
+      setPrevMoveCount(gameState.moves.length);
+      if (!gameState.isGameOver) isFirstLoad.current = false; // clear on play
+    }
   }, [gameState?.isGameOver, gameState?.moves.length, showResult, gameState?.winner, myPlayer]);
 
   // Bug 1 fix: auto-show join dialog for shared-link guests
@@ -189,13 +206,15 @@ const Game = () => {
               name={playerNames.X}
               player="X"
               isActive={gameState.currentPlayer === "X" && !gameState.isGameOver && !isWaiting}
-              wins={0}
+              wins={profileX?.wins || 0}
+              isAdmin={profileX?.is_admin || false}
             />
             <PlayerCard
               name={playerNames.O}
               player="O"
               isActive={gameState.currentPlayer === "O" && !gameState.isGameOver && !isWaiting}
-              wins={0}
+              wins={profileO?.wins || 0}
+              isAdmin={profileO?.is_admin || false}
             />
 
             {!myPlayer && (
@@ -247,13 +266,15 @@ const Game = () => {
             name={playerNames.X}
             player="X"
             isActive={gameState.currentPlayer === "X" && !gameState.isGameOver && !isWaiting}
-            wins={0}
+            wins={profileX?.wins || 0}
+            isAdmin={profileX?.is_admin || false}
           />
           <PlayerCard
             name={playerNames.O}
             player="O"
             isActive={gameState.currentPlayer === "O" && !gameState.isGameOver && !isWaiting}
-            wins={0}
+            wins={profileO?.wins || 0}
+            isAdmin={profileO?.is_admin || false}
           />
         </div>
 
