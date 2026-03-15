@@ -1,50 +1,121 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import CreateRoomDialog from "@/components/game/CreateRoomDialog";
-import type { Room } from "@/lib/gameLogic";
-import { Plus, Users, Grid3X3 } from "lucide-react";
+import JoinRoomDialog from "@/components/game/JoinRoomDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { playerId } from "@/hooks/useMultiplayerGame";
+import { Plus, Users, Grid3X3, Loader2 } from "lucide-react";
+
+interface RoomRow {
+  id: string;
+  name: string;
+  board_size: number;
+  status: string;
+  player_x_name: string;
+  player_x_id: string;
+  player_o_name: string | null;
+  player_o_id: string | null;
+  created_at: string;
+}
 
 const Lobby = () => {
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
-  const [rooms, setRooms] = useState<Room[]>([
-    {
-      id: "demo-1",
-      name: "Phòng tập luyện",
-      hasPassword: false,
-      players: 1,
-      boardSize: 15,
-      status: "waiting",
-      createdAt: new Date(),
-    },
-  ]);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [joiningRoom, setJoiningRoom] = useState<RoomRow | null>(null);
 
-  const handleCreateRoom = (name: string, boardSize: number, playerName: string) => {
-    const newRoom: Room = {
-      id: `room-${Date.now()}`,
-      name,
-      hasPassword: false,
-      players: 1,
-      boardSize,
-      status: "waiting",
-      createdAt: new Date(),
-    };
-    setRooms((prev) => [newRoom, ...prev]);
+  // Fetch rooms
+  useEffect(() => {
+    async function fetchRooms() {
+      const { data } = await supabase
+        .from("game_rooms")
+        .select("*")
+        .in("status", ["waiting", "playing"])
+        .order("created_at", { ascending: false });
+      if (data) setRooms(data);
+      setLoading(false);
+    }
+    fetchRooms();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel("lobby-rooms")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "game_rooms" },
+        () => { fetchRooms(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const handleCreateRoom = async (name: string, boardSize: number, playerName: string) => {
+    const { data, error } = await supabase
+      .from("game_rooms")
+      .insert({
+        name,
+        board_size: boardSize,
+        player_x_name: playerName,
+        player_x_id: playerId,
+        status: "waiting",
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error("Failed to create room:", error);
+      return;
+    }
+
     setShowCreate(false);
-    navigate(`/game/${newRoom.id}`, { state: { roomName: name, boardSize, playerName } });
+    navigate(`/game/${data.id}`);
   };
 
-  const handleJoinRoom = (room: Room) => {
-    navigate(`/game/${room.id}`, {
-      state: { roomName: room.name, boardSize: room.boardSize, playerName: "Người chơi 2" },
-    });
+  const handleJoinRoom = (room: RoomRow) => {
+    // If I'm already in this room, navigate directly
+    if (room.player_x_id === playerId || room.player_o_id === playerId) {
+      navigate(`/game/${room.id}`);
+      return;
+    }
+    // If room is full, just navigate as spectator
+    if (room.player_o_id) {
+      navigate(`/game/${room.id}`);
+      return;
+    }
+    // Show join dialog
+    setJoiningRoom(room);
   };
+
+  const handleConfirmJoin = async (playerName: string) => {
+    if (!joiningRoom) return;
+
+    const { error } = await supabase
+      .from("game_rooms")
+      .update({
+        player_o_name: playerName,
+        player_o_id: playerId,
+        status: "playing",
+      })
+      .eq("id", joiningRoom.id)
+      .eq("status", "waiting");
+
+    if (error) {
+      console.error("Failed to join room:", error);
+      return;
+    }
+
+    setJoiningRoom(null);
+    navigate(`/game/${joiningRoom.id}`);
+  };
+
+  const getPlayerCount = (room: RoomRow) => room.player_o_id ? 2 : 1;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Caro Arena</h1>
@@ -56,63 +127,76 @@ const Lobby = () => {
         </Button>
       </header>
 
-      {/* Room list */}
       <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8">
         <p className="label-text mb-4">Phòng đang chờ</p>
 
-        <AnimatePresence mode="popLayout">
-          {rooms.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-16 text-muted-foreground"
-            >
-              <p className="text-sm">Chưa có phòng nào. Hãy tạo phòng mới!</p>
-            </motion.div>
-          )}
-
-          <div className="space-y-2">
-            {rooms.map((room) => (
-              <motion.div
-                key={room.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex items-center justify-between p-4 rounded-xl border hover:border-foreground/20 hover:shadow-sm transition-all duration-200 bg-card cursor-pointer group"
-                onClick={() => handleJoinRoom(room)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Grid3X3 className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-foreground">{room.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {room.boardSize}×{room.boardSize} • {room.status === "waiting" ? "Đang chờ" : "Đang chơi"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Users className="w-4 h-4" />
-                    <span className="mono-text text-xs">{room.players}/2</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Tham gia
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
-        </AnimatePresence>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {rooms.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-16 text-muted-foreground"
+              >
+                <p className="text-sm">Chưa có phòng nào. Hãy tạo phòng mới!</p>
+              </motion.div>
+            )}
+
+            <div className="space-y-2">
+              {rooms.map((room) => (
+                <motion.div
+                  key={room.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="flex items-center justify-between p-4 rounded-xl border hover:border-foreground/20 hover:shadow-sm transition-all duration-200 bg-card cursor-pointer group"
+                  onClick={() => handleJoinRoom(room)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Grid3X3 className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-foreground">{room.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {room.board_size}×{room.board_size} •{" "}
+                        {room.status === "waiting" ? "Đang chờ" : "Đang chơi"} •{" "}
+                        <span className="text-foreground/60">{room.player_x_name}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Users className="w-4 h-4" />
+                      <span className="mono-text text-xs">{getPlayerCount(room)}/2</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      {getPlayerCount(room) < 2 ? "Tham gia" : "Xem"}
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </AnimatePresence>
+        )}
       </main>
 
       <CreateRoomDialog open={showCreate} onOpenChange={setShowCreate} onCreateRoom={handleCreateRoom} />
+      <JoinRoomDialog
+        open={!!joiningRoom}
+        onOpenChange={(open) => !open && setJoiningRoom(null)}
+        roomName={joiningRoom?.name || ""}
+        onJoin={handleConfirmJoin}
+      />
     </div>
   );
 };
