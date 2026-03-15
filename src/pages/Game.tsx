@@ -31,13 +31,17 @@ const Game = () => {
   const [copied, setCopied] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
 
-  // Detect game over
+  // Detect game over and rematch resets
   useEffect(() => {
     if (gameState && gameState.isGameOver && gameState.moves.length > prevMoveCount) {
       setTimeout(() => setShowResult(true), 600);
     }
+    // If the game is restarted from a rematch, hide the dialog automatically
+    if (gameState && !gameState.isGameOver && showResult) {
+      setShowResult(false);
+    }
     if (gameState) setPrevMoveCount(gameState.moves.length);
-  }, [gameState?.isGameOver, gameState?.moves.length]);
+  }, [gameState?.isGameOver, gameState?.moves.length, showResult]);
 
   // Bug 1 fix: auto-show join dialog for shared-link guests
   useEffect(() => {
@@ -52,7 +56,8 @@ const Game = () => {
   };
 
   const handleRematchAndClose = () => {
-    setShowResult(false);
+    // Only call handleRematch to toggle the ready state.
+    // The dialog will close automatically when the Postgres event resets the game.
     handleRematch();
   };
 
@@ -212,6 +217,11 @@ const Game = () => {
           open={showResult}
           winner={gameState.winner}
           playerNames={playerNames}
+          myPlayer={myPlayer}
+          rematchStatus={{ 
+            x: room?.rematch_x_ready || false, 
+            o: room?.rematch_o_ready || false 
+          }}
           onRematch={handleRematchAndClose}
           onLeave={handleLeave}
         />

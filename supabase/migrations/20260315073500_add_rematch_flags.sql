@@ -1,0 +1,4 @@
+ALTER TABLE public.game_rooms 
+ADD COLUMN IF NOT EXISTS rematch_x_ready BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS rematch_o_ready BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS last_starter TEXT DEFAULT 'X';

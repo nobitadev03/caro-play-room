@@ -14,7 +14,7 @@ const Board = ({ gameState, onCellClick }: BoardProps) => {
     winningCells.some(([wr, wc]) => wr === r && wc === c);
 
   return (
-    <div className="board-container inline-block">
+    <div className="board-container inline-block relative">
       {/* Column labels */}
       <div className="flex">
         <div className="w-7" />
@@ -46,6 +46,25 @@ const Board = ({ gameState, onCellClick }: BoardProps) => {
           ))}
         </div>
       ))}
+
+      {/* Winning line strikethrough */}
+      {isGameOver && winningCells.length >= 5 && (
+        <svg
+          className="absolute pointer-events-none"
+          style={{ top: '28px', left: '28px', width: boardSize * 40, height: boardSize * 40 }}
+        >
+          <line
+            x1={winningCells[0][1] * 40 + 20}
+            y1={winningCells[0][0] * 40 + 20}
+            x2={winningCells[winningCells.length - 1][1] * 40 + 20}
+            y2={winningCells[winningCells.length - 1][0] * 40 + 20}
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            className={currentPlayer === 'X' ? 'text-primary' : 'text-secondary'}
+          />
+        </svg>
+      )}
     </div>
   );
 };

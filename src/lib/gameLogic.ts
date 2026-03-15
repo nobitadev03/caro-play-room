@@ -33,10 +33,10 @@ export function createBoard(size: number): Board {
   return Array.from({ length: size }, () => Array(size).fill(null));
 }
 
-export function createGameState(boardSize: number = 15): GameState {
+export function createGameState(boardSize: number = 15, startingPlayer: Player = 'X'): GameState {
   return {
     board: createBoard(boardSize),
-    currentPlayer: 'X',
+    currentPlayer: startingPlayer,
     moves: [],
     winner: null,
     winningCells: [],
@@ -76,7 +76,11 @@ export function checkWin(board: Board, row: number, col: number, player: Player)
       } else break;
     }
 
-    if (cells.length >= 5) return cells;
+    if (cells.length >= 5) {
+      // Sort cells by row then col so we can easily draw a line from first to last
+      cells.sort((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
+      return cells;
+    }
   }
 
   return null;

@@ -6,11 +6,13 @@ interface GameOverDialogProps {
   open: boolean;
   winner: Player | null;
   playerNames: { X: string; O: string };
+  myPlayer: Player | null;
+  rematchStatus: { x: boolean; o: boolean };
   onRematch: () => void;
   onLeave: () => void;
 }
 
-const GameOverDialog = ({ open, winner, playerNames, onRematch, onLeave }: GameOverDialogProps) => {
+const GameOverDialog = ({ open, winner, playerNames, myPlayer, rematchStatus, onRematch, onLeave }: GameOverDialogProps) => {
   if (!winner) return null;
 
   return (
@@ -18,22 +20,40 @@ const GameOverDialog = ({ open, winner, playerNames, onRematch, onLeave }: GameO
       <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="text-center text-xl">
-            Chiến thắng thuộc về{" "}
-            <span className={winner === 'X' ? 'text-primary' : 'text-secondary'}>
-              {playerNames[winner]}
-            </span>
+            {myPlayer === winner ? (
+              <span className="text-green-500">🎉 Bạn đã thắng!</span>
+            ) : myPlayer !== null ? (
+              <span className="text-red-500">💔 Bạn đã thua!</span>
+            ) : (
+              <span>
+                Chiến thắng thuộc về{" "}
+                <span className={winner === 'X' ? 'text-primary' : 'text-secondary'}>
+                  {playerNames[winner]}
+                </span>
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription className="text-center">
-            Trận đấu kết thúc sau {winner === 'X' ? 'X' : 'O'} hoàn thành chuỗi 5.
+            Trận đấu kết thúc sau khi {winner === 'X' ? 'X' : 'O'} hoàn thành chuỗi 5.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-3 mt-4">
           <Button variant="outline" className="flex-1" onClick={onLeave}>
             Rời phòng
           </Button>
-          <Button className="flex-1" onClick={onRematch}>
-            Tái đấu
-          </Button>
+          {myPlayer && (
+            <Button 
+              className="flex-1" 
+              onClick={onRematch}
+              disabled={myPlayer === 'X' ? rematchStatus.x : rematchStatus.o}
+            >
+              {(myPlayer === 'X' ? rematchStatus.x : rematchStatus.o) 
+                ? "Đang chờ đối phương..." 
+                : (myPlayer === 'X' ? rematchStatus.o : rematchStatus.x) 
+                  ? "Đồng ý tái đấu" 
+                  : "Tái đấu"}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

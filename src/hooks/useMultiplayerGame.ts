@@ -26,6 +26,9 @@ interface RoomData {
   player_o_name: string | null;
   player_o_id: string | null;
   turn_deadline: string | null;
+  rematch_x_ready: boolean;
+  rematch_o_ready: boolean;
+  last_starter: string;
 }
 
 export function useMultiplayerGame(roomId: string) {
@@ -80,7 +83,7 @@ export function useMultiplayerGame(roomId: string) {
           .eq("room_id", roomId)
           .order("move_number", { ascending: true });
 
-        let state = createGameState(roomData.board_size);
+        let state = createGameState(roomData.board_size, (roomData.last_starter as Player) || 'X');
         if (moves) {
           for (const m of moves) {
             state = makeMove(state, m.row_idx, m.col_idx);
@@ -108,9 +111,30 @@ export function useMultiplayerGame(roomId: string) {
           if (updated.player_x_id === playerId) setMyPlayer("X");
           else if (updated.player_o_id === playerId) setMyPlayer("O");
 
+          // Dual-rematch reset logic
+          if (updated.status === "finished" && updated.rematch_x_ready && updated.rematch_o_ready) {
+            // Only player X executes the DB reset to prevent race conditions
+            if (playerId === updated.player_x_id) {
+              const nextStarter = updated.last_starter === 'X' ? 'O' : 'X';
+              const deadlineTime = new Date(Date.now() + TURN_SECONDS * 1000).toISOString();
+              
+              const resetRoom = async () => {
+                await supabase.from("game_moves").delete().eq("room_id", roomId);
+                await supabase.from("game_rooms").update({
+                  status: "playing",
+                  turn_deadline: deadlineTime,
+                  rematch_x_ready: false,
+                  rematch_o_ready: false,
+                  last_starter: nextStarter
+                }).eq("id", roomId);
+              };
+              resetRoom();
+            }
+          }
+
           // Bug 2 fix: rematch — reset game state when room restarts
           if (updated.status === "playing" && gameStateRef.current?.isGameOver) {
-            setGameState(createGameState(updated.board_size));
+            setGameState(createGameState(updated.board_size, (updated.last_starter as Player) || 'X'));
           }
 
           // Handle timeout or game over from other player's perspective
@@ -256,20 +280,16 @@ export function useMultiplayerGame(roomId: string) {
     [roomId]
   );
 
-  // Rematch: clear moves, reset room
+  // Rematch: set ready state
   const handleRematch = useCallback(async () => {
-    if (!room) return;
+    if (!room || !myPlayer) return;
 
-    await supabase.from("game_moves").delete().eq("room_id", roomId);
-
-    const deadlineTime = new Date(Date.now() + TURN_SECONDS * 1000).toISOString();
-    await supabase
-      .from("game_rooms")
-      .update({ status: "playing", turn_deadline: deadlineTime })
-      .eq("id", roomId);
-
-    setGameState(createGameState(room.board_size));
-  }, [roomId, room]);
+    if (myPlayer === 'X') {
+      await supabase.from("game_rooms").update({ rematch_x_ready: true }).eq("id", roomId);
+    } else {
+      await supabase.from("game_rooms").update({ rematch_o_ready: true }).eq("id", roomId);
+    }
+  }, [roomId, room, myPlayer]);
 
   return {
     room,
