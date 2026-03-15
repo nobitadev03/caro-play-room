@@ -64,16 +64,18 @@ export function useMatchmaking() {
 
         if (!delError) {
           // Successfully removed opponent from queue, meaning we "claimed" them.
-          // Now create the game room
+          // Randomize who goes first (X goes first)
+          const isX = Math.random() > 0.5;
+
           const { data: room, error: roomError } = await supabase
             .from("game_rooms")
             .insert({
               name: `Ranked: ${profile.display_name} vs Khách`,
               board_size: 15,
-              player_x_id: user.id,
-              player_x_name: profile.display_name,
-              player_o_id: opponent.player_id,
-              player_o_name: "Đối thủ", // We don't have their name instantly, but the game will update it 
+              player_x_id: isX ? user.id : opponent.player_id,
+              player_x_name: isX ? profile.display_name : "Đối thủ",
+              player_o_id: isX ? opponent.player_id : user.id,
+              player_o_name: isX ? "Đối thủ" : profile.display_name,
               status: "playing",
               turn_deadline: new Date(Date.now() + 30 * 1000).toISOString(),
             })

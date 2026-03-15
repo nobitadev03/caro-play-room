@@ -11,9 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import { ArrowLeft, RotateCcw, Loader2, Copy, Check, MessageSquare } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import useSound from "use-sound";
 import confetti from "canvas-confetti";
-import { PLAY_SOUND_URL, WIN_SOUND_URL } from "@/lib/sounds";
 import ChatBox from "@/components/game/ChatBox";
 
 const Game = () => {
@@ -37,16 +35,12 @@ const Game = () => {
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
 
-  const [playMoveSound] = useSound(PLAY_SOUND_URL, { volume: 0.5 });
-  const [playWinSound] = useSound(WIN_SOUND_URL, { volume: 0.5 });
-
   // Detect game over and rematch resets
   useEffect(() => {
     if (gameState && gameState.isGameOver && gameState.moves.length > prevMoveCount) {
       setTimeout(() => {
         setShowResult(true);
         if (gameState.winner === myPlayer || gameState.winner) {
-          playWinSound();
           confetti({
             particleCount: 150,
             spread: 70,
@@ -61,13 +55,8 @@ const Game = () => {
       setShowResult(false);
     }
     
-    // Play move sound if moves increased
-    if (gameState && gameState.moves.length > prevMoveCount && prevMoveCount > 0) {
-      playMoveSound();
-    }
-    
     if (gameState) setPrevMoveCount(gameState.moves.length);
-  }, [gameState?.isGameOver, gameState?.moves.length, showResult, playMoveSound, playWinSound, gameState?.winner, myPlayer]);
+  }, [gameState?.isGameOver, gameState?.moves.length, showResult, gameState?.winner, myPlayer]);
 
   // Bug 1 fix: auto-show join dialog for shared-link guests
   useEffect(() => {

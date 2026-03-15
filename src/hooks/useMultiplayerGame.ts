@@ -228,7 +228,7 @@ export function useMultiplayerGame(roomId: string) {
           .eq("id", roomId);
       }
     },
-    [roomId, myPlayer]
+    [roomId, myPlayer, room]
   );
 
   // Handle timeout: current player loses
