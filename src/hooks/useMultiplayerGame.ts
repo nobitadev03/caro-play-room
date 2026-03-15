@@ -27,6 +27,8 @@ export function useMultiplayerGame(roomId: string) {
   const [myPlayer, setMyPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profileX, setProfileX] = useState<any | null>(null);
+  const [profileO, setProfileO] = useState<any | null>(null);
   const gameStateRef = useRef<GameState | null>(null);
 
   // Keep ref in sync
@@ -80,6 +82,14 @@ export function useMultiplayerGame(roomId: string) {
           }
         }
         setGameState(state);
+        const { data: px } = await (supabase as any).from("profiles").select("*").eq("id", roomData.player_x_id).maybeSingle();
+        if (px) setProfileX(px);
+
+        if (roomData.player_o_id) {
+          const { data: po } = await (supabase as any).from("profiles").select("*").eq("id", roomData.player_o_id).maybeSingle();
+          if (po) setProfileO(po);
+        }
+
         setLoading(false);
       }
     }
@@ -100,6 +110,14 @@ export function useMultiplayerGame(roomId: string) {
           setRoom(updated);
           if (updated.player_x_id === playerId) setMyPlayer("X");
           else if (updated.player_o_id === playerId) setMyPlayer("O");
+
+          // Load profiles on updates/swaps
+          if (updated.player_o_id && updated.player_o_id !== room?.player_o_id) {
+            (supabase as any).from("profiles").select("*").eq("id", updated.player_o_id).maybeSingle().then(({data}: any) => { if (data) setProfileO(data); });
+          }
+          if (updated.player_x_id && updated.player_x_id !== room?.player_x_id) {
+            (supabase as any).from("profiles").select("*").eq("id", updated.player_x_id).maybeSingle().then(({data}: any) => { if (data) setProfileX(data); });
+          }
 
           // Dual-rematch reset logic
           if (updated.status === "finished" && updated.rematch_x_ready && updated.rematch_o_ready) {
@@ -218,7 +236,13 @@ export function useMultiplayerGame(roomId: string) {
 
         await supabase
           .from("game_rooms")
-          .update({ status: "finished", turn_deadline: null, winner_id: winnerId } as any)
+          .update({ 
+            status: "finished", 
+            turn_deadline: null, 
+            winner_id: winnerId,
+            rematch_x_ready: false,
+            rematch_o_ready: false
+          } as any)
           .eq("id", roomId);
       } else {
         // Update deadline for next player's turn
@@ -251,7 +275,9 @@ export function useMultiplayerGame(roomId: string) {
       .update({ 
         status: "finished", 
         turn_deadline: null,
-        winner_id: winner === "X" ? room?.player_x_id : room?.player_o_id
+        winner_id: winner === "X" ? room?.player_x_id : room?.player_o_id,
+        rematch_x_ready: false,
+        rematch_o_ready: false
       } as any)
       .eq("id", roomId);
   }, [roomId, myPlayer, room]);
@@ -309,5 +335,7 @@ export function useMultiplayerGame(roomId: string) {
     handleDeclineRematch,
     handleJoin,
     handleTimeout,
+    profileX,
+    profileO,
   };
 }
