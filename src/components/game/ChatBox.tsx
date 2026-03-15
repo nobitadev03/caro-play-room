@@ -91,15 +91,17 @@ export default function ChatBox({ roomId, myPlayerName }: ChatBoxProps) {
         ) : (
           messages.map((msg) => {
             const isMe = msg.senderName === myPlayerName;
+            const messageIsAdmin = msg.isAdmin || (isMe && (profile as any)?.is_admin);
+
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                <span className={`text-[10px] mb-0.5 px-1 ${msg.isAdmin ? "text-amber-600 dark:text-amber-500 font-semibold flex items-center gap-0.5" : "text-muted-foreground"}`}>
+                <span className={`text-[10px] mb-0.5 px-1 ${messageIsAdmin ? "text-amber-600 dark:text-amber-500 font-semibold flex items-center gap-0.5" : "text-muted-foreground"}`}>
                   {isMe ? "Bạn" : msg.senderName} 
-                  {msg.isAdmin && <span className="text-xs">👑</span>}
+                  {messageIsAdmin && <span className="text-xs">👑</span>}
                 </span>
                 <div 
                   className={`text-sm py-1.5 px-3 rounded-lg max-w-[90%] break-words ${
-                    msg.isAdmin 
+                    messageIsAdmin 
                     ? "bg-amber-500 text-black font-medium " + (isMe ? "rounded-tr-none" : "rounded-tl-none")
                     : isMe 
                       ? "bg-primary text-primary-foreground rounded-tr-none" 
