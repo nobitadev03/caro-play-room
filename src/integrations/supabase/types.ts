@@ -14,7 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_moves: {
+        Row: {
+          col_idx: number
+          created_at: string
+          id: string
+          move_number: number
+          player: string
+          room_id: string
+          row_idx: number
+        }
+        Insert: {
+          col_idx: number
+          created_at?: string
+          id?: string
+          move_number: number
+          player: string
+          room_id: string
+          row_idx: number
+        }
+        Update: {
+          col_idx?: number
+          created_at?: string
+          id?: string
+          move_number?: number
+          player?: string
+          room_id?: string
+          row_idx?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_moves_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_rooms: {
+        Row: {
+          board_size: number
+          created_at: string
+          id: string
+          name: string
+          player_o_id: string | null
+          player_o_name: string | null
+          player_x_id: string
+          player_x_name: string
+          status: string
+        }
+        Insert: {
+          board_size?: number
+          created_at?: string
+          id?: string
+          name: string
+          player_o_id?: string | null
+          player_o_name?: string | null
+          player_x_id: string
+          player_x_name: string
+          status?: string
+        }
+        Update: {
+          board_size?: number
+          created_at?: string
+          id?: string
+          name?: string
+          player_o_id?: string | null
+          player_o_name?: string | null
+          player_x_id?: string
+          player_x_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
