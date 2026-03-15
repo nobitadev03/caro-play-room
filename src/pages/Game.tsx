@@ -189,8 +189,8 @@ const Game = () => {
             </div>
           </aside>
 
-          <main className="flex-1 flex overflow-auto relative p-2 sm:p-4 bg-muted/20">
-            <div className="m-auto pb-4 pr-4">
+          <main className="flex-1 overflow-auto relative bg-muted/20">
+            <div className="min-w-full min-h-full flex items-center justify-center p-4 sm:p-8 w-max h-max">
               <Board gameState={gameState} onCellClick={handleCellClick} />
             </div>
           </main>
