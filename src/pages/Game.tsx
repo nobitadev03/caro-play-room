@@ -10,6 +10,10 @@ import TurnTimer from "@/components/game/TurnTimer";
 import { Button } from "@/components/ui/button";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import { ArrowLeft, RotateCcw, Loader2, Copy, Check } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import useSound from "use-sound";
+import confetti from "canvas-confetti";
+import { PLAY_SOUND_URL, WIN_SOUND_URL } from "@/lib/sounds";
 
 const Game = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -31,17 +35,37 @@ const Game = () => {
   const [copied, setCopied] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
 
+  const [playMoveSound] = useSound(PLAY_SOUND_URL, { volume: 0.5 });
+  const [playWinSound] = useSound(WIN_SOUND_URL, { volume: 0.5 });
+
   // Detect game over and rematch resets
   useEffect(() => {
     if (gameState && gameState.isGameOver && gameState.moves.length > prevMoveCount) {
-      setTimeout(() => setShowResult(true), 600);
+      setTimeout(() => {
+        setShowResult(true);
+        if (gameState.winner === myPlayer || gameState.winner) {
+          playWinSound();
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: gameState.winner === 'X' ? ['#2563eb', '#60a5fa'] : ['#e11d48', '#fb7185']
+          });
+        }
+      }, 600);
     }
     // If the game is restarted from a rematch, hide the dialog automatically
     if (gameState && !gameState.isGameOver && showResult) {
       setShowResult(false);
     }
+    
+    // Play move sound if moves increased
+    if (gameState && gameState.moves.length > prevMoveCount && prevMoveCount > 0) {
+      playMoveSound();
+    }
+    
     if (gameState) setPrevMoveCount(gameState.moves.length);
-  }, [gameState?.isGameOver, gameState?.moves.length, showResult]);
+  }, [gameState?.isGameOver, gameState?.moves.length, showResult, playMoveSound, playWinSound, gameState?.winner, myPlayer]);
 
   // Bug 1 fix: auto-show join dialog for shared-link guests
   useEffect(() => {
@@ -123,6 +147,7 @@ const Game = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <ThemeToggle />
             {/* Timer in header */}
             {!isWaiting && myPlayer && (
               <TurnTimer

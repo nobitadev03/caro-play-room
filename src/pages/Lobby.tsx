@@ -7,6 +7,7 @@ import JoinRoomDialog from "@/components/game/JoinRoomDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { playerId } from "@/hooks/useMultiplayerGame";
 import { Plus, Users, Grid3X3, Loader2, Trash2 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface RoomRow {
   id: string;
@@ -152,10 +153,13 @@ const Lobby = () => {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Caro Arena</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Trận đấu mới. Chiến thuật mới.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 shrink-0">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Tạo phòng</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Tạo phòng</span>
+          </Button>
+        </div>
       </header>
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8">
