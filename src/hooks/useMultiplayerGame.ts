@@ -83,7 +83,7 @@ export function useMultiplayerGame(roomId: string) {
           .eq("room_id", roomId)
           .order("move_number", { ascending: true });
 
-        let state = createGameState(roomData.board_size, (roomData.last_starter as Player) || 'X');
+        let state = createGameState(roomData.board_size);
         if (moves) {
           for (const m of moves) {
             state = makeMove(state, m.row_idx, m.col_idx);
@@ -115,7 +115,6 @@ export function useMultiplayerGame(roomId: string) {
           if (updated.status === "finished" && updated.rematch_x_ready && updated.rematch_o_ready) {
             // Only player X executes the DB reset to prevent race conditions
             if (playerId === updated.player_x_id) {
-              const nextStarter = updated.last_starter === 'X' ? 'O' : 'X';
               const deadlineTime = new Date(Date.now() + TURN_SECONDS * 1000).toISOString();
               
               const resetRoom = async () => {
@@ -126,7 +125,10 @@ export function useMultiplayerGame(roomId: string) {
                   turn_deadline: deadlineTime,
                   rematch_x_ready: false,
                   rematch_o_ready: false,
-                  last_starter: nextStarter
+                  player_x_id: updated.player_o_id,
+                  player_o_id: updated.player_x_id,
+                  player_x_name: updated.player_o_name,
+                  player_o_name: updated.player_x_name,
                 }).eq("id", roomId);
               };
               resetRoom();
@@ -135,7 +137,7 @@ export function useMultiplayerGame(roomId: string) {
 
           // Bug 2 fix: rematch — reset game state when room restarts
           if (updated.status === "playing" && gameStateRef.current?.isGameOver) {
-            setGameState(createGameState(updated.board_size, (updated.last_starter as Player) || 'X'));
+            setGameState(createGameState(updated.board_size));
           }
 
           // Handle timeout or game over from other player's perspective
