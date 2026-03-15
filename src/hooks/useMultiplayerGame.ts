@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createGameState, makeMove, type GameState, type Player } from "@/lib/gameLogic";
 
-// Generate a unique player ID per browser session
+const TURN_SECONDS = 30;
+
+// Generate a unique player ID per browser (persists across tabs)
 function getPlayerId(): string {
-  let id = sessionStorage.getItem("caro_player_id");
+  let id = localStorage.getItem("caro_player_id");
   if (!id) {
     id = crypto.randomUUID();
-    sessionStorage.setItem("caro_player_id", id);
+    localStorage.setItem("caro_player_id", id);
   }
   return id;
 }
@@ -23,6 +25,7 @@ interface RoomData {
   player_x_id: string;
   player_o_name: string | null;
   player_o_id: string | null;
+  turn_deadline: string | null;
 }
 
 export function useMultiplayerGame(roomId: string) {
@@ -46,7 +49,6 @@ export function useMultiplayerGame(roomId: string) {
       setLoading(true);
       setError(null);
 
-      // Fetch room
       const { data: roomData, error: roomErr } = await supabase
         .from("game_rooms")
         .select("*")
@@ -64,23 +66,20 @@ export function useMultiplayerGame(roomId: string) {
       if (!cancelled) {
         setRoom(roomData);
 
-        // Determine my role
         if (roomData.player_x_id === playerId) {
           setMyPlayer("X");
         } else if (roomData.player_o_id === playerId) {
           setMyPlayer("O");
         } else {
-          setMyPlayer(null); // spectator or needs to join
+          setMyPlayer(null);
         }
 
-        // Fetch existing moves
         const { data: moves } = await supabase
           .from("game_moves")
           .select("*")
           .eq("room_id", roomId)
           .order("move_number", { ascending: true });
 
-        // Reconstruct game state
         let state = createGameState(roomData.board_size);
         if (moves) {
           for (const m of moves) {
@@ -96,7 +95,7 @@ export function useMultiplayerGame(roomId: string) {
     return () => { cancelled = true; };
   }, [roomId]);
 
-  // Subscribe to room changes
+  // Subscribe to room + move changes
   useEffect(() => {
     const channel = supabase
       .channel(`room-${roomId}`)
@@ -108,6 +107,11 @@ export function useMultiplayerGame(roomId: string) {
           setRoom(updated);
           if (updated.player_x_id === playerId) setMyPlayer("X");
           else if (updated.player_o_id === playerId) setMyPlayer("O");
+
+          // Bug 2 fix: rematch — reset game state when room restarts
+          if (updated.status === "playing" && gameStateRef.current?.isGameOver) {
+            setGameState(createGameState(updated.board_size));
+          }
         }
       )
       .on(
@@ -117,7 +121,6 @@ export function useMultiplayerGame(roomId: string) {
           const move = payload.new as { row_idx: number; col_idx: number; player: string; move_number: number };
           setGameState((prev) => {
             if (!prev) return prev;
-            // Don't re-apply if we already have this move
             if (prev.moves.length >= move.move_number) return prev;
             return makeMove(prev, move.row_idx, move.col_idx);
           });
@@ -144,8 +147,10 @@ export function useMultiplayerGame(roomId: string) {
       // Optimistic update
       setGameState((prev) => prev ? makeMove(prev, row, col) : prev);
 
-      // Persist to DB
-      const { error } = await supabase.from("game_moves").insert({
+      // Persist move + update deadline for next player
+      const deadlineTime = new Date(Date.now() + TURN_SECONDS * 1000).toISOString();
+
+      const { error: moveError } = await supabase.from("game_moves").insert({
         room_id: roomId,
         row_idx: row,
         col_idx: col,
@@ -153,9 +158,9 @@ export function useMultiplayerGame(roomId: string) {
         move_number: moveNumber,
       });
 
-      if (error) {
-        console.error("Failed to save move:", error);
-        // Rollback - reload state
+      if (moveError) {
+        console.error("Failed to save move:", moveError);
+        // Rollback
         const { data: moves } = await supabase
           .from("game_moves")
           .select("*")
@@ -172,29 +177,80 @@ export function useMultiplayerGame(roomId: string) {
         return;
       }
 
-      // Check if game over after this move
+      // Check game over
       const newState = makeMove(state, row, col);
       if (newState.isGameOver) {
         await supabase
           .from("game_rooms")
-          .update({ status: "finished" })
+          .update({ status: "finished", turn_deadline: null })
+          .eq("id", roomId);
+      } else {
+        // Update deadline for next player's turn
+        await supabase
+          .from("game_rooms")
+          .update({ turn_deadline: deadlineTime })
           .eq("id", roomId);
       }
     },
     [roomId, myPlayer]
   );
 
-  // Rematch: clear moves, reset room status
+  // Handle timeout: current player loses
+  const handleTimeout = useCallback(async () => {
+    const state = gameStateRef.current;
+    if (!state || state.isGameOver) return;
+    if (!myPlayer) return;
+    if (state.currentPlayer !== myPlayer) return;
+
+    // Mark game as finished — opponent wins (loser is current player)
+    const winner: Player = myPlayer === "X" ? "O" : "X";
+    // We fake a "game over" locally
+    setGameState((prev) => {
+      if (!prev) return prev;
+      return { ...prev, isGameOver: true, winner };
+    });
+
+    await supabase
+      .from("game_rooms")
+      .update({ status: "finished", turn_deadline: null })
+      .eq("id", roomId);
+  }, [roomId, myPlayer]);
+
+  // Bug 1 fix: join room from game page (shared link flow)
+  const handleJoin = useCallback(
+    async (playerName: string): Promise<boolean> => {
+      const { error } = await supabase
+        .from("game_rooms")
+        .update({
+          player_o_name: playerName,
+          player_o_id: playerId,
+          status: "playing",
+          turn_deadline: new Date(Date.now() + TURN_SECONDS * 1000).toISOString(),
+        })
+        .eq("id", roomId)
+        .eq("status", "waiting");
+
+      if (error) {
+        console.error("Failed to join room:", error);
+        return false;
+      }
+
+      setMyPlayer("O");
+      return true;
+    },
+    [roomId]
+  );
+
+  // Rematch: clear moves, reset room
   const handleRematch = useCallback(async () => {
     if (!room) return;
 
-    // Delete all moves
     await supabase.from("game_moves").delete().eq("room_id", roomId);
 
-    // Reset room status
+    const deadlineTime = new Date(Date.now() + TURN_SECONDS * 1000).toISOString();
     await supabase
       .from("game_rooms")
-      .update({ status: "playing" })
+      .update({ status: "playing", turn_deadline: deadlineTime })
       .eq("id", roomId);
 
     setGameState(createGameState(room.board_size));
@@ -208,5 +264,7 @@ export function useMultiplayerGame(roomId: string) {
     error,
     handleCellClick,
     handleRematch,
+    handleJoin,
+    handleTimeout,
   };
 }

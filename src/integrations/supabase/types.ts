@@ -63,6 +63,7 @@ export type Database = {
           player_x_id: string
           player_x_name: string
           status: string
+          turn_deadline: string | null
         }
         Insert: {
           board_size?: number
@@ -74,6 +75,7 @@ export type Database = {
           player_x_id: string
           player_x_name: string
           status?: string
+          turn_deadline?: string | null
         }
         Update: {
           board_size?: number
@@ -85,6 +87,7 @@ export type Database = {
           player_x_id?: string
           player_x_name?: string
           status?: string
+          turn_deadline?: string | null
         }
         Relationships: []
       }

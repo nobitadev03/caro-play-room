@@ -5,6 +5,8 @@ import Board from "@/components/game/Board";
 import PlayerCard from "@/components/game/PlayerCard";
 import MoveHistory from "@/components/game/MoveHistory";
 import GameOverDialog from "@/components/game/GameOverDialog";
+import JoinRoomDialog from "@/components/game/JoinRoomDialog";
+import TurnTimer from "@/components/game/TurnTimer";
 import { Button } from "@/components/ui/button";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
 import { ArrowLeft, RotateCcw, Loader2, Copy, Check } from "lucide-react";
@@ -20,11 +22,14 @@ const Game = () => {
     error,
     handleCellClick,
     handleRematch,
+    handleJoin,
+    handleTimeout,
   } = useMultiplayerGame(roomId!);
 
   const [showResult, setShowResult] = useState(false);
   const [prevMoveCount, setPrevMoveCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
 
   // Detect game over
   useEffect(() => {
@@ -33,6 +38,18 @@ const Game = () => {
     }
     if (gameState) setPrevMoveCount(gameState.moves.length);
   }, [gameState?.isGameOver, gameState?.moves.length]);
+
+  // Bug 1 fix: auto-show join dialog for shared-link guests
+  useEffect(() => {
+    if (!loading && myPlayer === null && room?.status === "waiting") {
+      setShowJoinDialog(true);
+    }
+  }, [loading, myPlayer, room?.status]);
+
+  const handleJoinConfirm = async (playerName: string) => {
+    const ok = await handleJoin(playerName);
+    if (ok) setShowJoinDialog(false);
+  };
 
   const handleRematchAndClose = () => {
     setShowResult(false);
@@ -100,6 +117,15 @@ const Game = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Timer in header */}
+            {!isWaiting && myPlayer && (
+              <TurnTimer
+                deadline={room?.turn_deadline ?? null}
+                isMyTurn={isMyTurn}
+                isGameOver={gameState.isGameOver}
+                onTimeout={handleTimeout}
+              />
+            )}
             <Button variant="outline" size="sm" className="gap-2" onClick={copyLink}>
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? "Đã sao" : "Mời bạn"}
@@ -122,7 +148,7 @@ const Game = () => {
           </div>
         )}
 
-        {/* Turn indicator for mobile */}
+        {/* Turn indicator */}
         {!isWaiting && !gameState.isGameOver && myPlayer && (
           <div className={`px-6 py-2 text-center text-xs font-medium border-b ${isMyTurn ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground"}`}>
             {isMyTurn ? "Lượt của bạn!" : `Đang chờ ${playerNames[gameState.currentPlayer]}...`}
@@ -188,6 +214,14 @@ const Game = () => {
           playerNames={playerNames}
           onRematch={handleRematchAndClose}
           onLeave={handleLeave}
+        />
+
+        {/* Bug 1 fix: join dialog for guests arriving via shared link */}
+        <JoinRoomDialog
+          open={showJoinDialog}
+          onOpenChange={setShowJoinDialog}
+          roomName={room?.name || ""}
+          onJoin={handleJoinConfirm}
         />
       </motion.div>
     </AnimatePresence>
