@@ -78,6 +78,8 @@ export function useMatchmaking() {
               player_o_name: isX ? "Đối thủ" : profile.display_name,
               status: "playing",
               turn_deadline: new Date(Date.now() + 30 * 1000).toISOString(),
+              rematch_x_ready: false,
+              rematch_o_ready: false,
             })
             .select()
             .single();

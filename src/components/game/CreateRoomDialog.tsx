@@ -12,14 +12,14 @@ interface CreateRoomDialogProps {
 
 const CreateRoomDialog = ({ open, onOpenChange, onCreateRoom }: CreateRoomDialogProps) => {
   const [roomName, setRoomName] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem("caro_player_name") || "");
   const [boardSize, setBoardSize] = useState(15);
 
   const handleCreate = () => {
     if (!roomName.trim() || !playerName.trim()) return;
+    localStorage.setItem("caro_player_name", playerName.trim());
     onCreateRoom(roomName.trim(), boardSize, playerName.trim());
     setRoomName("");
-    setPlayerName("");
   };
 
   return (

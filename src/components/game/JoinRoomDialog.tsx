@@ -12,12 +12,12 @@ interface JoinRoomDialogProps {
 }
 
 const JoinRoomDialog = ({ open, onOpenChange, roomName, onJoin }: JoinRoomDialogProps) => {
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem("caro_player_name") || "");
 
   const handleJoin = () => {
     if (!playerName.trim()) return;
+    localStorage.setItem("caro_player_name", playerName.trim());
     onJoin(playerName.trim());
-    setPlayerName("");
   };
 
   return (

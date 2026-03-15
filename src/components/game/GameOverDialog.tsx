@@ -37,6 +37,9 @@ const GameOverDialog = ({ open, winner, playerNames, myPlayer, rematchStatus, on
           <DialogDescription className="text-center">
             Trận đấu kết thúc sau khi {winner === 'X' ? 'X' : 'O'} hoàn thành chuỗi 5.
           </DialogDescription>
+          <div className="text-center text-[10px] text-muted-foreground mt-2 bg-muted/30 py-0.5 rounded-md mx-6 font-mono">
+            DEBUG: X={rematchStatus.x ? "Ready" : "No"} | O={rematchStatus.o ? "Ready" : "No"}
+          </div>
         </DialogHeader>
         <div className="flex flex-col sm:flex-row gap-2 mt-4">
           <Button variant="outline" className="flex-1" onClick={onLeave}>

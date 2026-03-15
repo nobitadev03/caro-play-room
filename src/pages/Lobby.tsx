@@ -76,6 +76,8 @@ const Lobby = () => {
         player_x_name: playerName,
         player_x_id: playerId,
         status: "waiting",
+        rematch_x_ready: false,
+        rematch_o_ready: false,
       })
       .select()
       .single();
