@@ -8,6 +8,7 @@ import Game from "./pages/Game";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { AuthProvider } from "./components/AuthProvider";
 
 const queryClient = new QueryClient();
 
@@ -17,14 +18,16 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Lobby />} />
-            <Route path="/game/:roomId" element={<Game />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Lobby />} />
+              <Route path="/game/:roomId" element={<Game />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
