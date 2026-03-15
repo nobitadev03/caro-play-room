@@ -6,7 +6,7 @@ import CreateRoomDialog from "@/components/game/CreateRoomDialog";
 import JoinRoomDialog from "@/components/game/JoinRoomDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { playerId } from "@/hooks/useMultiplayerGame";
-import { Plus, Users, Grid3X3, Loader2 } from "lucide-react";
+import { Plus, Users, Grid3X3, Loader2, Trash2 } from "lucide-react";
 
 interface RoomRow {
   id: string;
@@ -37,6 +37,14 @@ const Lobby = () => {
         .order("created_at", { ascending: false });
       if (data) setRooms(data);
       setLoading(false);
+
+      // Auto-cleanup: Delete waiting rooms older than 1 hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      await supabase
+        .from("game_rooms")
+        .delete()
+        .eq("status", "waiting")
+        .lt("created_at", oneHourAgo);
     }
     fetchRooms();
 
@@ -112,6 +120,29 @@ const Lobby = () => {
     navigate(`/game/${joiningRoom.id}`);
   };
 
+  const handleDeleteRoom = async (e: React.MouseEvent, roomId: string) => {
+    e.stopPropagation(); // Avoid triggering join room
+    
+    // Optimistic UI update
+    setRooms(prev => prev.filter(r => r.id !== roomId));
+
+    const { error } = await supabase
+      .from("game_rooms")
+      .delete()
+      .eq("id", roomId);
+
+    if (error) {
+      console.error("Failed to delete room:", error);
+      // Fetch rooms again to recover state
+      const { data } = await supabase
+        .from("game_rooms")
+        .select("*")
+        .in("status", ["waiting", "playing"])
+        .order("created_at", { ascending: false });
+      if (data) setRooms(data);
+    }
+  };
+
   const getPlayerCount = (room: RoomRow) => room.player_o_id ? 2 : 1;
 
   return (
@@ -175,6 +206,16 @@ const Lobby = () => {
                       <Users className="w-4 h-4" />
                       <span className="mono-text text-xs">{getPlayerCount(room)}/2</span>
                     </div>
+                    {room.player_x_id === playerId && room.status === "waiting" && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleDeleteRoom(e, room.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"

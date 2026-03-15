@@ -112,6 +112,21 @@ export function useMultiplayerGame(roomId: string) {
           if (updated.status === "playing" && gameStateRef.current?.isGameOver) {
             setGameState(createGameState(updated.board_size));
           }
+
+          // Handle timeout or game over from other player's perspective
+          if (updated.status === "finished" && gameStateRef.current && !gameStateRef.current.isGameOver) {
+            // Note: If it's finished but we don't know why, it's likely a timeout or resignation
+            // Since `handleTimeout` sets the loser as `currentPlayer`, the winner is the OPPOSITE of the current player.
+            const currentPlayer = gameStateRef.current.currentPlayer;
+            const winner: Player = currentPlayer === "X" ? "O" : "X";
+            
+            setGameState((prev) => {
+              if (!prev) return prev;
+              // Only apply if it wasn't already game over from a normal move
+              if (prev.isGameOver) return prev;
+              return { ...prev, isGameOver: true, winner };
+            });
+          }
         }
       )
       .on(
