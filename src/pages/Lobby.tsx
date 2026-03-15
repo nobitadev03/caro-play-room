@@ -147,14 +147,14 @@ const Lobby = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b px-6 py-4 flex items-center justify-between">
+      <header className="border-b px-4 sm:px-6 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Caro Arena</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Trận đấu mới. Chiến thuật mới.</p>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Caro Arena</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Trận đấu mới. Chiến thuật mới.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2">
+        <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 shrink-0">
           <Plus className="w-4 h-4" />
-          Tạo phòng
+          <span className="hidden sm:inline">Tạo phòng</span>
         </Button>
       </header>
 
@@ -185,44 +185,46 @@ const Lobby = () => {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center justify-between p-4 rounded-xl border hover:border-foreground/20 hover:shadow-sm transition-all duration-200 bg-card cursor-pointer group"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border hover:border-foreground/20 hover:shadow-sm transition-all duration-200 bg-card cursor-pointer group"
                   onClick={() => handleJoinRoom(room)}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="w-10 h-10 shrink-0 rounded-lg bg-muted flex items-center justify-center">
                       <Grid3X3 className="w-5 h-5 text-muted-foreground" />
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">{room.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-foreground truncate">{room.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {room.board_size}×{room.board_size} •{" "}
                         {room.status === "waiting" ? "Đang chờ" : "Đang chơi"} •{" "}
                         <span className="text-foreground/60">{room.player_x_name}</span>
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 px-1 sm:px-0">
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <Users className="w-4 h-4" />
                       <span className="mono-text text-xs">{getPlayerCount(room)}/2</span>
                     </div>
-                    {room.player_x_id === playerId && room.status === "waiting" && (
+                    <div className="flex items-center gap-2">
+                      {room.player_x_id === playerId && room.status === "waiting" && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive w-8 h-8 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => handleDeleteRoom(e, room.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => handleDeleteRoom(e, room.id)}
+                        size="sm"
+                        variant="outline"
+                        className="opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {getPlayerCount(room) < 2 ? "Tham gia" : "Xem"}
                       </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {getPlayerCount(room) < 2 ? "Tham gia" : "Xem"}
-                    </Button>
+                    </div>
                   </div>
                 </motion.div>
               ))}

@@ -104,24 +104,25 @@ const Game = () => {
         className="min-h-screen bg-background flex flex-col"
       >
         {/* Header */}
-        <header className="border-b px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={handleLeave} className="w-8 h-8">
+        <header className="border-b px-3 sm:px-6 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={handleLeave} className="w-8 h-8 shrink-0">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div>
-              <h1 className="font-semibold text-sm text-foreground">{room?.name || "Phòng chơi"}</h1>
-              <p className="text-xs text-muted-foreground mono-text">
-                {room?.board_size}×{room?.board_size} • Nước #{gameState.moves.length}
+            <div className="min-w-0">
+              <h1 className="font-semibold text-sm text-foreground truncate">{room?.name || "Phòng chơi"}</h1>
+              <p className="text-xs text-muted-foreground mono-text truncate">
+                {room?.board_size}×{room?.board_size} • #{gameState.moves.length}
                 {myPlayer && (
-                  <span className="ml-2">
-                    • Bạn là <span className={myPlayer === "X" ? "text-primary" : "text-secondary"}>{myPlayer}</span>
+                  <span className="ml-1 sm:ml-2">
+                    <span className="hidden sm:inline">• Bạn là </span>
+                    <span className={myPlayer === "X" ? "text-primary" : "text-secondary"}>{myPlayer}</span>
                   </span>
                 )}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Timer in header */}
             {!isWaiting && myPlayer && (
               <TurnTimer
@@ -131,14 +132,14 @@ const Game = () => {
                 onTimeout={handleTimeout}
               />
             )}
-            <Button variant="outline" size="sm" className="gap-2" onClick={copyLink}>
+            <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 px-2 sm:px-3" onClick={copyLink}>
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? "Đã sao" : "Mời bạn"}
+              <span className="hidden sm:inline">{copied ? "Đã sao" : "Mời bạn"}</span>
             </Button>
             {myPlayer && (
-              <Button variant="outline" size="sm" onClick={handleRematchAndClose} className="gap-2">
+              <Button variant="outline" size="sm" onClick={handleRematchAndClose} className="gap-1.5 sm:gap-2 px-2 sm:px-3">
                 <RotateCcw className="w-3.5 h-3.5" />
-                Ván mới
+                <span className="hidden sm:inline">Ván mới</span>
               </Button>
             )}
           </div>
@@ -188,8 +189,10 @@ const Game = () => {
             </div>
           </aside>
 
-          <main className="flex-1 flex items-center justify-center p-4 overflow-auto">
-            <Board gameState={gameState} onCellClick={handleCellClick} />
+          <main className="flex-1 flex overflow-auto relative p-2 sm:p-4 bg-muted/20">
+            <div className="m-auto pb-4 pr-4">
+              <Board gameState={gameState} onCellClick={handleCellClick} />
+            </div>
           </main>
 
           <aside className="w-64 border-l hidden lg:flex flex-col">
@@ -198,7 +201,7 @@ const Game = () => {
         </div>
 
         {/* Mobile player info */}
-        <div className="lg:hidden border-t p-3 flex gap-2">
+        <div className="lg:hidden border-t p-2 sm:p-3 flex gap-2">
           <PlayerCard
             name={playerNames.X}
             player="X"
