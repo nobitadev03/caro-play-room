@@ -11,9 +11,10 @@ interface CellProps {
   isLastCol: boolean;
   isLastRow: boolean;
   disabled: boolean;
+  isLastMove?: boolean;
 }
 
-const Cell = ({ value, onClick, currentPlayer, isWinning, isLastCol, isLastRow, disabled }: CellProps) => {
+const Cell = ({ value, onClick, currentPlayer, isWinning, isLastCol, isLastRow, disabled, isLastMove }: CellProps) => {
   const [hovered, setHovered] = useState(false);
 
   const winBg = isWinning
@@ -22,9 +23,11 @@ const Cell = ({ value, onClick, currentPlayer, isWinning, isLastCol, isLastRow, 
       : 'bg-secondary/10'
     : '';
 
+  const lastMoveBg = isLastMove && !isWinning ? 'bg-foreground/5' : '';
+
   return (
     <div
-      className={`cell ${isLastCol ? 'border-r-0' : ''} ${isLastRow ? 'border-b-0' : ''} ${winBg}`}
+      className={`cell ${isLastCol ? 'border-r-0' : ''} ${isLastRow ? 'border-b-0' : ''} ${winBg} ${lastMoveBg}`}
       onClick={disabled ? undefined : onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

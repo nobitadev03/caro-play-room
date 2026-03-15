@@ -8,10 +8,12 @@ interface BoardProps {
 }
 
 const Board = ({ gameState, onCellClick }: BoardProps) => {
-  const { board, currentPlayer, winningCells, isGameOver, boardSize } = gameState;
+  const { board, currentPlayer, winningCells, isGameOver, boardSize, moves } = gameState;
 
   const isWinningCell = (r: number, c: number) =>
     winningCells.some(([wr, wc]) => wr === r && wc === c);
+
+  const lastMove = moves.length > 0 ? moves[moves.length - 1] : null;
 
   return (
     <div className="board-container inline-block relative">
@@ -42,6 +44,7 @@ const Board = ({ gameState, onCellClick }: BoardProps) => {
               isLastCol={c === boardSize - 1}
               isLastRow={r === boardSize - 1}
               disabled={isGameOver}
+              isLastMove={lastMove?.row === r && lastMove?.col === c}
             />
           ))}
         </div>
