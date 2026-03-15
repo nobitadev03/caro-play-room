@@ -33,10 +33,10 @@ export function createBoard(size: number): Board {
   return Array.from({ length: size }, () => Array(size).fill(null));
 }
 
-export function createGameState(boardSize: number = 15): GameState {
+export function createGameState(boardSize: number = 15, startingPlayer: Player = 'X'): GameState {
   return {
     board: createBoard(boardSize),
-    currentPlayer: 'X',
+    currentPlayer: startingPlayer,
     moves: [],
     winner: null,
     winningCells: [],
