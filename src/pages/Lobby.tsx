@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Plus, Users, Grid3X3, Loader2, Trash2, Swords, X, Trophy } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserProfileButton } from "@/components/ui/auth";
-import { usePlayerId } from "@/components/AuthProvider";
+import { usePlayerId, useAuth } from "@/components/AuthProvider";
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 
 interface RoomRow {
@@ -25,6 +25,7 @@ interface RoomRow {
 
 const Lobby = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const playerId = usePlayerId();
   const { isSearching, findMatch, cancelSearch } = useMatchmaking();
   const [showCreate, setShowCreate] = useState(false);
@@ -239,11 +240,11 @@ const Lobby = () => {
                       <span className="mono-text text-xs">{getPlayerCount(room)}/2</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {room.player_x_id === playerId && room.status === "waiting" && (
+                      {((room.player_x_id === playerId && room.status === "waiting") || profile?.is_admin) && (
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive w-8 h-8 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive w-8 h-8 opacity-100"
                           onClick={(e) => handleDeleteRoom(e, room.id)}
                         >
                           <Trash2 className="w-4 h-4" />
