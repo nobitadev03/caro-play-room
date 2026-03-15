@@ -23,6 +23,7 @@ export default function ChatBox({ roomId, myPlayerName }: ChatBoxProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
   
   // Auto scroll to bottom
   const scrollToBottom = () => {
@@ -35,6 +36,7 @@ export default function ChatBox({ roomId, myPlayerName }: ChatBoxProps) {
 
   useEffect(() => {
     const channel = supabase.channel(`room-${roomId}`);
+    channelRef.current = channel;
     
     // Subscribe to chat broadcasts
     channel.on(
@@ -69,12 +71,14 @@ export default function ChatBox({ roomId, myPlayerName }: ChatBoxProps) {
     setInputValue("");
 
     // Broadcast to others
-    const channel = supabase.channel(`room-${roomId}`);
-    await channel.send({
-      type: "broadcast",
-      event: "chat",
-      payload: newMessage,
-    });
+    if (channelRef.current) {
+      console.log("ChatBox handleSend. profile?.is_admin:", (profile as any)?.is_admin);
+      await channelRef.current.send({
+        type: "broadcast",
+        event: "chat",
+        payload: newMessage,
+      });
+    }
   };
 
   return (
