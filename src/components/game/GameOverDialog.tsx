@@ -9,10 +9,11 @@ interface GameOverDialogProps {
   myPlayer: Player | null;
   rematchStatus: { x: boolean; o: boolean };
   onRematch: () => void;
+  onDecline: () => void;
   onLeave: () => void;
 }
 
-const GameOverDialog = ({ open, winner, playerNames, myPlayer, rematchStatus, onRematch, onLeave }: GameOverDialogProps) => {
+const GameOverDialog = ({ open, winner, playerNames, myPlayer, rematchStatus, onRematch, onDecline, onLeave }: GameOverDialogProps) => {
   if (!winner) return null;
 
   return (
@@ -37,10 +38,17 @@ const GameOverDialog = ({ open, winner, playerNames, myPlayer, rematchStatus, on
             Trận đấu kết thúc sau khi {winner === 'X' ? 'X' : 'O'} hoàn thành chuỗi 5.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex gap-3 mt-4">
+        <div className="flex flex-col sm:flex-row gap-2 mt-4">
           <Button variant="outline" className="flex-1" onClick={onLeave}>
             Rời phòng
           </Button>
+          
+          {myPlayer && (myPlayer === 'X' ? rematchStatus.o : rematchStatus.x) && (
+            <Button variant="secondary" className="flex-1" onClick={onDecline}>
+              Từ chối
+            </Button>
+          )}
+
           {myPlayer && (
             <Button 
               className="flex-1" 

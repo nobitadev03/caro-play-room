@@ -292,6 +292,12 @@ export function useMultiplayerGame(roomId: string) {
     }
   }, [roomId, room, myPlayer]);
 
+  // Decline rematch: reset ready states
+  const handleDeclineRematch = useCallback(async () => {
+    if (!room || !myPlayer) return;
+    await supabase.from("game_rooms").update({ rematch_x_ready: false, rematch_o_ready: false }).eq("id", roomId);
+  }, [roomId, room, myPlayer]);
+
   return {
     room,
     gameState,
@@ -300,6 +306,7 @@ export function useMultiplayerGame(roomId: string) {
     error,
     handleCellClick,
     handleRematch,
+    handleDeclineRematch,
     handleJoin,
     handleTimeout,
   };

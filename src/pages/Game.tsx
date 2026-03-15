@@ -25,6 +25,7 @@ const Game = () => {
     error,
     handleCellClick,
     handleRematch,
+    handleDeclineRematch,
     handleJoin,
     handleTimeout,
   } = useMultiplayerGame(roomId!);
@@ -266,6 +267,7 @@ const Game = () => {
             o: room?.rematch_o_ready || false 
           }}
           onRematch={handleRematchAndClose}
+          onDecline={handleDeclineRematch}
           onLeave={handleLeave}
         />
 
