@@ -9,11 +9,12 @@ import JoinRoomDialog from "@/components/game/JoinRoomDialog";
 import TurnTimer from "@/components/game/TurnTimer";
 import { Button } from "@/components/ui/button";
 import { useMultiplayerGame } from "@/hooks/useMultiplayerGame";
-import { ArrowLeft, RotateCcw, Loader2, Copy, Check } from "lucide-react";
+import { ArrowLeft, RotateCcw, Loader2, Copy, Check, MessageSquare } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import useSound from "use-sound";
 import confetti from "canvas-confetti";
 import { PLAY_SOUND_URL, WIN_SOUND_URL } from "@/lib/sounds";
+import ChatBox from "@/components/game/ChatBox";
 
 const Game = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -34,6 +35,7 @@ const Game = () => {
   const [prevMoveCount, setPrevMoveCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   const [playMoveSound] = useSound(PLAY_SOUND_URL, { volume: 0.5 });
   const [playWinSound] = useSound(WIN_SOUND_URL, { volume: 0.5 });
@@ -148,6 +150,9 @@ const Game = () => {
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <ThemeToggle />
+            <Button variant="ghost" size="icon" className="lg:hidden w-8 h-8 rounded-full" onClick={() => setShowMobileChat(!showMobileChat)}>
+              <MessageSquare className="w-4 h-4" />
+            </Button>
             {/* Timer in header */}
             {!isWaiting && myPlayer && (
               <TurnTimer
@@ -220,10 +225,31 @@ const Game = () => {
             </div>
           </main>
 
-          <aside className="w-64 border-l hidden lg:flex flex-col">
-            <MoveHistory moves={gameState.moves} />
+          <aside className="w-64 md:w-80 border-l hidden lg:flex flex-col gap-4 p-4">
+            <div className="flex-1 min-h-0 border rounded-xl overflow-hidden shadow-sm bg-card">
+              <MoveHistory moves={gameState.moves} />
+            </div>
+            <div className="flex-1 min-h-0 h-64 border rounded-xl shadow-sm overflow-hidden bg-card">
+              <ChatBox roomId={roomId!} myPlayerName={myPlayer === 'X' ? playerNames.X : myPlayer === 'O' ? playerNames.O : "Khán giả"} />
+            </div>
           </aside>
         </div>
+        
+        {/* Mobile Chat View Overlay */}
+        <AnimatePresence>
+          {showMobileChat && (
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              className="lg:hidden absolute bottom-[72px] left-0 right-0 h-80 z-20 px-2"
+            >
+              <div className="h-full rounded-t-xl overflow-hidden shadow-xl border">
+                <ChatBox roomId={roomId!} myPlayerName={myPlayer === 'X' ? playerNames.X : myPlayer === 'O' ? playerNames.O : "Khán giả"} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile player info */}
         <div className="lg:hidden border-t p-2 sm:p-3 flex gap-2">
