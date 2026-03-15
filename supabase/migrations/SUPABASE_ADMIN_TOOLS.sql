@@ -7,6 +7,8 @@ SET elo_rating = 9999999, is_admin = true
 WHERE id = (SELECT id FROM auth.users WHERE email = 'snowstudent03@gmail.com');
 
 -- 3. Cập nhật RLS Policy để cho phép Admin DELETE game_rooms
+DROP POLICY IF EXISTS "Admins can delete any room" ON public.game_rooms;
+
 CREATE POLICY "Admins can delete any room" 
 ON public.game_rooms 
 FOR DELETE 
