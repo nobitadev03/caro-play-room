@@ -75,11 +75,20 @@ export function UserProfileButton() {
     );
   }
 
+  const level = (profile as any)?.is_admin ? 99 : 1 + Math.floor((profile?.wins || 0) / 5);
+
   return (
     <div className="flex items-center gap-2">
       <div className="hidden sm:flex flex-col items-end text-right">
-        <span className="text-sm font-semibold">{profile?.display_name || user.email?.split('@')[0]}</span>
-        <span className="text-xs text-muted-foreground font-mono">ELO: {profile?.elo_rating || 1200}</span>
+        <div className="flex items-center gap-1">
+          {(profile as any)?.is_admin && <span className="text-[10px] px-1 py-0.5 bg-amber-500 text-black font-bold rounded shrink-0">Admin</span>}
+          <span className="text-sm font-semibold truncate max-w-[120px]">{profile?.display_name || user.email?.split('@')[0]}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+          <span>Lv.{level}</span>
+          <span>•</span>
+          <span>ELO: {profile?.elo_rating || 1200}</span>
+        </div>
       </div>
       <Button variant="ghost" size="icon" onClick={signOut} title="Đăng xuất">
         <LogOut className="h-4 w-4" />
