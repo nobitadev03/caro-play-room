@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import CreateRoomDialog from "@/components/game/CreateRoomDialog";
 import JoinRoomDialog from "@/components/game/JoinRoomDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { playerId } from "@/hooks/useMultiplayerGame";
-import { Plus, Users, Grid3X3, Loader2, Trash2 } from "lucide-react";
+import { Plus, Users, Grid3X3, Loader2, Trash2, Swords, X, Trophy } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserProfileButton } from "@/components/ui/auth";
+import { usePlayerId } from "@/components/AuthProvider";
+import { useMatchmaking } from "@/hooks/useMatchmaking";
 
 interface RoomRow {
   id: string;
@@ -23,6 +25,8 @@ interface RoomRow {
 
 const Lobby = () => {
   const navigate = useNavigate();
+  const playerId = usePlayerId();
+  const { isSearching, findMatch, cancelSearch } = useMatchmaking();
   const [showCreate, setShowCreate] = useState(false);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,9 +157,13 @@ const Lobby = () => {
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">Caro Arena</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Trận đấu mới. Chiến thuật mới.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/leaderboard')} className="text-yellow-600 dark:text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-500/10">
+            <Trophy className="w-4 h-4" />
+          </Button>
+          <UserProfileButton />
+          <Button onClick={() => setShowCreate(true)} size="sm" className="gap-2 shrink-0 ml-1">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Tạo phòng</span>
           </Button>
@@ -163,6 +171,26 @@ const Lobby = () => {
       </header>
 
       <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-8">
+        <div className="mb-6 bg-card border rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center gap-3">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+            <Swords className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold">Chế độ Xếp Hạng</h2>
+          <p className="text-sm text-muted-foreground w-full sm:max-w-[80%]">
+            Hệ thống sẽ tự động tìm kiếm đối thủ có cùng trình độ (ELO) với bạn. Cả 2 sẽ thi đấu trên bàn cờ tiêu chuẩn 15x15.
+          </p>
+          {isSearching ? (
+             <Button variant="destructive" className="mt-2 w-full sm:w-auto min-w-[200px]" onClick={cancelSearch}>
+               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+               Đang tìm trận... Hủy
+             </Button>
+          ) : (
+            <Button className="mt-2 w-full sm:w-auto min-w-[200px] text-base h-11" onClick={findMatch}>
+              Chơi Ngay
+            </Button>
+          )}
+        </div>
+
         <p className="label-text mb-4">Phòng đang chờ</p>
 
         {loading ? (

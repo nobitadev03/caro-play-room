@@ -1,20 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createGameState, makeMove, type GameState, type Player } from "@/lib/gameLogic";
+import { usePlayerId } from "@/components/AuthProvider";
 
 const TURN_SECONDS = 30;
-
-// Generate a unique player ID per browser (persists across tabs)
-function getPlayerId(): string {
-  let id = localStorage.getItem("caro_player_id");
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("caro_player_id", id);
-  }
-  return id;
-}
-
-export const playerId = getPlayerId();
 
 interface RoomData {
   id: string;
@@ -32,6 +21,7 @@ interface RoomData {
 }
 
 export function useMultiplayerGame(roomId: string) {
+  const playerId = usePlayerId();
   const [room, setRoom] = useState<RoomData | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [myPlayer, setMyPlayer] = useState<Player | null>(null);
@@ -222,9 +212,13 @@ export function useMultiplayerGame(roomId: string) {
       // Check game over
       const newState = makeMove(state, row, col);
       if (newState.isGameOver) {
+        let winnerId = null;
+        if (newState.winner === "X") winnerId = room?.player_x_id;
+        if (newState.winner === "O") winnerId = room?.player_o_id;
+
         await supabase
           .from("game_rooms")
-          .update({ status: "finished", turn_deadline: null })
+          .update({ status: "finished", turn_deadline: null, winner_id: winnerId } as any)
           .eq("id", roomId);
       } else {
         // Update deadline for next player's turn
@@ -254,9 +248,13 @@ export function useMultiplayerGame(roomId: string) {
 
     await supabase
       .from("game_rooms")
-      .update({ status: "finished", turn_deadline: null })
+      .update({ 
+        status: "finished", 
+        turn_deadline: null,
+        winner_id: winner === "X" ? room?.player_x_id : room?.player_o_id
+      } as any)
       .eq("id", roomId);
-  }, [roomId, myPlayer]);
+  }, [roomId, myPlayer, room]);
 
   // Bug 1 fix: join room from game page (shared link flow)
   const handleJoin = useCallback(
